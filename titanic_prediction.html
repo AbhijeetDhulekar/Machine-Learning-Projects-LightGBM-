@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Titanic Survival Predictor | GA Technologies</title>
+    <style>
+        :root {
+            --primary-color: #2A5C84;
+            --secondary-color: #5BA4E6;
+            --accent-color: #FF6B6B;
+            --error-color: #d32f2f;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            height: 60px;
+            margin-bottom: 1rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+        }
+
+        
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .input-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .prediction-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .probability-display {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 1.5rem 0;
+        }
+
+        .probability-meter {
+            height: 20px;
+            background: #eee;
+            border-radius: 10px;
+            margin: 1.5rem 0;
+            overflow: hidden;
+        }
+        
+        .meter-bar {
+            height: 100%;
+            background: var(--primary-color);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .error-message {
+            color: var(--error-color);
+            padding: 1rem;
+            margin: 1rem 0;
+            background: #ffebee;
+            border-radius: 4px;
+            display: none;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background: var(--secondary-color);
+        }
+
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .developer-credit {
+            text-align: center;
+            margin-top: 2rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .job-status {
+            background: #fff8e1;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="GA Technologies Logo" class="logo">
+        <h1>Titanic Survival Probability Predictor</h1>
+        <div class="overview">
+            <p>This service leverages a LightGBM model to predict Titanic survival outcomes. 
+               Provide passenger details below to receive instant survival prediction with probability.</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="job-status" id="jobStatus">
+            <h3>Async Job Status: <span id="jobStatusText">Processing</span></h3>
+            <p>Job ID: <code id="jobIdDisplay">None</code></p>
+        </div>
+
+        <div class="input-section">
+            <div class="input-grid">
+                <div class="input-group">
+                    <label for="pclass">Passenger Class</label>
+                    <select id="pclass" required>
+                        <option value="">Select class</option>
+                        <option value="1">1st Class</option>
+                        <option value="2">2nd Class</option>
+                        <option value="3">3rd Class</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="sex">Sex</label>
+                    <select id="sex" required>
+                        <option value="">Select sex</option>
+                        <option value="0">Female</option>
+                        <option value="1">Male</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="age">Age</label>
+                    <input type="number" step="0.1" id="age" min="0" max="120" required>
+                </div>
+                <div class="input-group">
+                    <label for="sibsp">Siblings/Spouses</label>
+                    <input type="number" id="sibsp" min="0" required>
+                </div>
+                <div class="input-group">
+                    <label for="parch">Parents/Children</label>
+                    <input type="number" id="parch" min="0" required>
+                </div>
+                <div class="input-group">
+                    <label for="fare">Fare</label>
+                    <input type="number" step="0.01" id="fare" min="0" required>
+                </div>
+                <div class="input-group">
+                    <label for="embarked">Embarked</label>
+                    <select id="embarked" required>
+                        <option value="">Select port</option>
+                        <option value="0">Cherbourg (C)</option>
+                        <option value="1">Queenstown (Q)</option>
+                        <option value="2">Southampton (S)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="familysize">Family Size</label>
+                    <input type="number" id="familysize" min="0" required>
+                </div>
+                <div class="input-group">
+                    <label for="is_alone">Is Alone</label>
+                    <select id="is_alone" required>
+                        <option value="">Select</option>
+                        <option value="1">Yes</option>
+                        <option value="0">No</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="deck">Deck</label>
+                    <select id="deck" required>
+                        <option value="">Select deck</option>
+                        <option value="0">Deck 0</option>
+                        <option value="1">Deck 1</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="error-message" id="errorDisplay"></div>
+
+            <div class="button-group">
+                <button id="predictBtn" onclick="predictSync()">Predict Survival (Instant)</button>
+                <button id="asyncBtn" onclick="predictAsync()">Predict Survival (Async)</button>
+                <button type="button" onclick="resetForm()">Reset Form</button>
+            </div>
+        </div>
+
+        <div class="prediction-card">
+            <h2>Prediction Result</h2>
+            <div class="probability-display">
+                <span id="probability">0</span>%
+            </div>
+            <div class="probability-meter">
+                <div class="meter-bar" id="probabilityMeter"></div>
+            </div>
+            <div id="resultText">Enter values to see prediction</div>
+        </div>
+    </div>
+
+    <div class="developer-credit">
+        Developed by Abhijeet Dhulekar - GA Technologies Co Ltd
+    </div>
+
+    <script>
+        let currentJobId = null;
+        let pollInterval = null;
+
+        function resetForm() {
+            document.querySelectorAll('input, select').forEach(element => {
+                element.value = '';
+            });
+            document.getElementById('probability').textContent = '0';
+            document.getElementById('probabilityMeter').style.width = '0%';
+            document.getElementById('resultText').textContent = 'Enter values to see prediction';
+            hideError();
+            
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+            hideJobStatus();
+        }
+
+        function showError(message) {
+            const errorDisplay = document.getElementById('errorDisplay');
+            errorDisplay.textContent = message;
+            errorDisplay.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorDisplay').style.display = 'none';
+        }
+
+        function showJobStatus(jobId) {
+            document.getElementById('jobStatus').style.display = 'block';
+            document.getElementById('jobIdDisplay').textContent = jobId;
+            document.getElementById('jobStatusText').textContent = 'Processing...';
+        }
+
+        function updateJobStatus(status) {
+            document.getElementById('jobStatusText').textContent = status;
+        }
+
+        function hideJobStatus() {
+            document.getElementById('jobStatus').style.display = 'none';
+        }
+
+        function updatePredictionUI(result) {
+            const probability = (result.probability * 100).toFixed(2);
+            document.getElementById('probability').textContent = probability;
+            document.getElementById('probabilityMeter').style.width = `${probability}%`;
+            
+            document.getElementById('resultText').textContent = 
+                result.prediction === 1 ? 
+                "High Survival Probability 🚢✅" : 
+                "Low Survival Probability ⚠️🌊";
+        }
+
+        function setButtonsDisabled(disabled) {
+            document.getElementById('predictBtn').disabled = disabled;
+            document.getElementById('asyncBtn').disabled = disabled;
+            
+            if (disabled) {
+                document.getElementById('predictBtn').textContent = 'Processing...';
+                document.getElementById('asyncBtn').textContent = 'Processing...';
+            } else {
+                document.getElementById('predictBtn').textContent = 'Predict Survival (Instant)';
+                document.getElementById('asyncBtn').textContent = 'Predict Survival (Async)';
+            }
+        }
+
+        async function predictSync() {
+            hideError();
+            setButtonsDisabled(true);
+            
+            try {
+                const inputs = collectInputs();
+                if (!inputs) return;
+
+                const response = await fetch('/titanic_sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data: inputs })
+                });
+
+                const result = await response.json();
+                
+                if (response.status !== 200) {
+                    throw new Error(result.message || 'Prediction failed');
+                }
+
+                updatePredictionUI(result);
+                
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+            } finally {
+                setButtonsDisabled(false);
+            }
+        }
+
+        async function predictAsync() {
+            hideError();
+            setButtonsDisabled(true);
+            hideJobStatus();
+            
+            try {
+                const inputs = collectInputs();
+                if (!inputs) return;
+
+                const response = await fetch('/titanic_async', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data: inputs })
+                });
+
+                const { job_id, status } = await response.json();
+                
+                if (response.status !== 200) {
+                    throw new Error(status || 'Job submission failed');
+                }
+
+                currentJobId = job_id;
+                showJobStatus(job_id);
+                
+                pollInterval = setInterval(async () => {
+                    try {
+                        const resultResponse = await fetch(`/result/${job_id}`);
+                        const result = await resultResponse.json();
+                        
+                        if (result.status === 'completed') {
+                            clearInterval(pollInterval);
+                            updateJobStatus('Completed');
+                            updatePredictionUI(result);
+                            setButtonsDisabled(false);
+                        } else if (result.status === 'error') {
+                            clearInterval(pollInterval);
+                            updateJobStatus('Failed');
+                            showError(result.message || 'Async prediction failed');
+                            setButtonsDisabled(false);
+                        }
+                    } catch (e) {
+                        console.error('Polling error:', e);
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+                setButtonsDisabled(false);
+            }
+        }
+
+        function collectInputs() {
+            const inputs = {
+                pclass: document.getElementById('pclass').value,
+                sex: document.getElementById('sex').value,
+                age: document.getElementById('age').value,
+                sibsp: document.getElementById('sibsp').value,
+                parch: document.getElementById('parch').value,
+                fare: document.getElementById('fare').value,
+                embarked: document.getElementById('embarked').value,
+                familysize: document.getElementById('familysize').value,
+                is_alone: document.getElementById('is_alone').value,
+                deck: document.getElementById('deck').value
+            };
+
+            for (const [key, value] of Object.entries(inputs)) {
+                if (value === "") {
+                    showError(`Please select a value for ${key}`);
+                    setButtonsDisabled(false);
+                    return null;
+                }
+            }
+
+            return inputs;
+        }
+    </script>
+</body>
+</html>
