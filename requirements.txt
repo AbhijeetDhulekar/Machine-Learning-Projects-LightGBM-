@@ -1,0 +1,14 @@
+flask==3.1.0
+flask-executor==1.0.0
+Werkzeug>=3.1.0
+joblib==1.4.2
+numpy==2.0.2
+scikit-learn==1.6.1
+gunicorn==23.0.0
+pandas==2.2.3
+fastapi==0.115.12
+uvicorn==0.34.0
+redis==5.2.1
+matplotlib==3.9.4
+seaborn==0.13.2
+lightgbm==4.6.0
